@@ -1,33 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code Entry Check</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212; /* Dark background */
+      color: #ffffff; /* Light text */
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1 {
+      color: #ffffff;
+      text-align: center;
+    }
+
+    #qr-reader {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      border: 2px solid #1e88e5;
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: #1e1e1e; /* Dark QR reader background */
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px solid #1e88e5;
+      border-radius: 10px;
+      color: #ffffff;
+      word-wrap: break-word;
+      width: 100%;
+      max-width: 500px;
+      display: none;
+      text-align: center;
+    }
+
+    .button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 25px;
+      background-color: #1e88e5; /* Button color */
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .button:hover {
+      background-color: #1565c0; /* Darker blue on hover */
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5em;
+      }
+      .button {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+    }
+
+    /* Status color classes */
+    .status-permitted {
+      border-color: green;
+      background-color: rgba(76, 175, 80, 0.2); /* Light green background */
+    }
+
+    .status-already-used {
+      border-color: red;
+      background-color: rgba(244, 67, 54, 0.2); /* Light red background */
+    }
+
+    .status-not-permitted {
+      border-color: orange;
+      background-color: rgba(255, 152, 0, 0.2); /* Light orange background */
+    }
+
+    .status-scanning {
+      border-color: blue;
+      background-color: rgba(33, 150, 243, 0.2); /* Light blue background */
+    }
+  </style>
 </head>
 <body>
   <h1>QR Code Scanner for Entry</h1>
-  <div id="qr-reader" style="width: 500px;"></div> <!-- Only one div with this ID -->
-  <div id="result" style="margin-top: 20px;"></div>
-
+  <div id="qr-reader"></div> <!-- Only one div with this ID -->
+  
+  <div id="result"></div>
+  
+  <button id="checkButton" class="button" style="display:none;">Check Entry</button>
+  
   <script>
+    // Check if the device is a mobile device
+    function isMobile() {
+  return /Mobi|Android/i.test(navigator.userAgent);
+}
+
+if (!isMobile()) {
+  // alert("This page is only accessible on mobile devices.");
+  // Redirect to a different page or show a message
+  window.location.href = "not-supported.html"; // Change to the desired page
+}
+
     // Initialize QR Code scanner
     function onScanSuccess(qrMessage) {
       document.getElementById('result').innerHTML = `<p>QR Code: ${qrMessage}</p>`;
-      
-      // Send the QR code content (unique ID) to your Google Apps Script Web App
-      fetch('https://script.google.com/macros/s/AKfycbxXk5b1NX1Yb-s38ia914te4QkPtHcLYXs_hiZ_ewSVHMc1K5E-xP3cYZimg_K3VySd/exec?qrcode=' + encodeURIComponent(qrMessage))
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
-        })
-        .catch(error => {
-          console.error("Error:", error);
-        });
+      document.getElementById('result').className = 'status-scanning'; // Change to scanning color
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('checkButton').style.display = 'block'; // Show the button
     }
 
     function onScanError(error) {
       console.warn(`QR code scanning error: ${error}`);
     }
+
+    document.getElementById('checkButton').addEventListener('click', function() {
+      this.textContent = 'Checking...'; // Change button text to "Checking"
+      const qrCode = document.getElementById('result').innerText.split(': ')[1];
+      fetch('https://script.google.com/macros/s/AKfycby5mwKPlMHGtZ1I7YmqXKA_eZA-rrNhg3X68o_OjSLwX-Ellkp0wS-ZaJ1E429E3dW_/exec?qrcode=' + encodeURIComponent(qrCode), {
+        method: "GET", // Ensure you use GET since doGet is used
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
+        // Change the box color based on the message
+        if (data.message.includes("Permitted")) {
+          document.getElementById('result').className = 'status-permitted';
+        } else if (data.message.includes("Already used")) {
+          document.getElementById('result').className = 'status-already-used';
+        } else {
+          document.getElementById('result').className = 'status-not-permitted';
+        }
+        this.textContent = 'Check Entry'; // Reset button text
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        this.textContent = 'Check Entry'; // Reset button text
+      });
+    });
 
     // Initialize the QR code scanner
     let qrScanner = new Html5Qrcode("qr-reader");
