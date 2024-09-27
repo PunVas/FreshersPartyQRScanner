@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Code Entry Check</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <h1>QR Code Scanner for Entry</h1>
+  <div id="qr-reader" style="width: 500px;"></div> <!-- Only one div with this ID -->
+  <div id="result" style="margin-top: 20px;"></div>
+
+  <script>
+    // Initialize QR Code scanner
+    function onScanSuccess(qrMessage) {
+      document.getElementById('result').innerHTML = `<p>QR Code: ${qrMessage}</p>`;
+      
+      // Send the QR code content (unique ID) to your Google Apps Script Web App
+      fetch('https://script.google.com/macros/s/AKfycbxXk5b1NX1Yb-s38ia914te4QkPtHcLYXs_hiZ_ewSVHMc1K5E-xP3cYZimg_K3VySd/exec?qrcode=' + encodeURIComponent(qrMessage))
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
+        })
+        .catch(error => {
+          console.error("Error:", error);
+        });
+    }
+
+    function onScanError(error) {
+      console.warn(`QR code scanning error: ${error}`);
+    }
+
+    // Initialize the QR code scanner
+    let qrScanner = new Html5Qrcode("qr-reader");
+    qrScanner.start(
+      { facingMode: "environment" },  // Use rear camera
+      { fps: 10, qrbox: 250 },        // Scan at 10 frames per second, 250px QR scanning box
+      onScanSuccess,                  // Success callback
+      onScanError                     // Error callback
+    ).catch(err => {
+      console.error("Error starting the QR scanner:", err);
+    });
+  </script>
+</body>
+</html>
