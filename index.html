@@ -9,8 +9,8 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #121212; /* Dark background */
-      color: #ffffff; /* Light text */
+      background-color: #121212;
+      color: #ffffff;
       margin: 0;
       padding: 20px;
       display: flex;
@@ -30,7 +30,7 @@
       border: 2px solid #1e88e5;
       border-radius: 10px;
       overflow: hidden;
-      background-color: #1e1e1e; /* Dark QR reader background */
+      background-color: #1e1e1e;
     }
 
     #result {
@@ -39,9 +39,9 @@
       border: 2px solid #1e88e5;
       border-radius: 10px;
       color: #ffffff;
+      max-width: 350px;
       word-wrap: break-word;
       width: 100%;
-      max-width: 500px;
       display: none;
       text-align: center;
     }
@@ -51,7 +51,7 @@
       padding: 10px 20px;
       border: none;
       border-radius: 25px;
-      background-color: #1e88e5; /* Button color */
+      background-color: #1e88e5;
       color: white;
       font-size: 16px;
       cursor: pointer;
@@ -59,7 +59,7 @@
     }
 
     .button:hover {
-      background-color: #1565c0; /* Darker blue on hover */
+      background-color: #1565c0;
     }
 
     @media (max-width: 600px) {
@@ -67,75 +67,92 @@
         font-size: 1.5em;
       }
       .button {
-        font-size: 14px;
+        font-size: 17px;
         padding: 8px 16px;
+        user-select:none;
       }
     }
 
-    /* Status color classes */
     .status-permitted {
       border-color: green;
-      background-color: rgba(76, 175, 80, 0.2); /* Light green background */
+      background-color: rgba(76, 175, 80, 0.2);
     }
 
     .status-already-used {
       border-color: red;
-      background-color: rgba(244, 67, 54, 0.2); /* Light red background */
+      background-color: rgba(244, 67, 54, 0.2);
     }
 
     .status-not-permitted {
       border-color: orange;
-      background-color: rgba(255, 152, 0, 0.2); /* Light orange background */
+      background-color: rgba(255, 152, 0, 0.2);
     }
 
     .status-scanning {
       border-color: blue;
-      background-color: rgba(33, 150, 243, 0.2); /* Light blue background */
+      background-color: rgba(33, 150, 243, 0.2);
     }
   </style>
 </head>
 <body>
   <h1>QR Code Scanner for Entry</h1>
-  <div id="qr-reader"></div> <!-- Only one div with this ID -->
+  <div id="qr-reader"></div>
   
   <div id="result"></div>
   
   <button id="checkButton" class="button" style="display:none;">Check Entry</button>
   
   <script>
-    // Check if the device is a mobile device
     function isMobile() {
-  return /Mobi|Android/i.test(navigator.userAgent);
-}
+      return /Mobi|Android/i.test(navigator.userAgent);
+    }
 
-if (!isMobile()) {
-  // alert("This page is only accessible on mobile devices.");
-  // Redirect to a different page or show a message
-  window.location.href = "not-supported.html"; // Change to the desired page
-}
+    if (!isMobile()) {
+      window.location.href = "not-supported.html";
+    }
 
-    // Initialize QR Code scanner
     function onScanSuccess(qrMessage) {
-      document.getElementById('result').innerHTML = `<p>QR Code: ${qrMessage}</p>`;
-      document.getElementById('result').className = 'status-scanning'; // Change to scanning color
+      document.getElementById('result').innerHTML = `<p><span style="color: cyan;">QR Code:</span> ${qrMessage}</p>`;
+      document.getElementById('result').className = 'status-scanning';
       document.getElementById('result').style.display = 'block';
-      document.getElementById('checkButton').style.display = 'block'; // Show the button
+      document.getElementById('checkButton').style.display = 'block';
     }
 
     function onScanError(error) {
       console.warn(`QR code scanning error: ${error}`);
     }
 
+    let qrScanner = new Html5Qrcode("qr-reader");
+    
+    function startScanner() {
+      qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        console.error("Error starting the QR scanner:", err);
+      });
+    }
+
+    function stopScanner() {
+      qrScanner.stop().then(() => {
+        console.log("QR scanner stopped");
+      }).catch(err => {
+        console.error("Error stopping the QR scanner:", err);
+      });
+    }
+
     document.getElementById('checkButton').addEventListener('click', function() {
-      this.textContent = 'Checking...'; // Change button text to "Checking"
+      this.textContent = 'Checking...';
       const qrCode = document.getElementById('result').innerText.split(': ')[1];
+      
       fetch('https://script.google.com/macros/s/AKfycby5mwKPlMHGtZ1I7YmqXKA_eZA-rrNhg3X68o_OjSLwX-Ellkp0wS-ZaJ1E429E3dW_/exec?qrcode=' + encodeURIComponent(qrCode), {
-        method: "GET", // Ensure you use GET since doGet is used
+        method: "GET",
       })
       .then(response => response.json())
       .then(data => {
         document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
-        // Change the box color based on the message
         if (data.message.includes("Permitted")) {
           document.getElementById('result').className = 'status-permitted';
         } else if (data.message.includes("Already used")) {
@@ -143,24 +160,22 @@ if (!isMobile()) {
         } else {
           document.getElementById('result').className = 'status-not-permitted';
         }
-        this.textContent = 'Check Entry'; // Reset button text
+        
+        document.getElementById('checkButton').style.display = 'none';
+        stopScanner(); 
+        setTimeout(() => {
+          startScanner();
+        }, 1000);
+        
+        this.textContent = 'Check Entry';
       })
       .catch(error => {
         console.error("Error:", error);
-        this.textContent = 'Check Entry'; // Reset button text
+        this.textContent = 'Check Entry';
       });
     });
 
-    // Initialize the QR code scanner
-    let qrScanner = new Html5Qrcode("qr-reader");
-    qrScanner.start(
-      { facingMode: "environment" },  // Use rear camera
-      { fps: 10, qrbox: 250 },        // Scan at 10 frames per second, 250px QR scanning box
-      onScanSuccess,                  // Success callback
-      onScanError                     // Error callback
-    ).catch(err => {
-      console.error("Error starting the QR scanner:", err);
-    });
+    startScanner(); 
   </script>
 </body>
 </html>
