@@ -147,7 +147,7 @@
       this.textContent = 'Checking...';
       const qrCode = document.getElementById('result').innerText.split(': ')[1];
       
-      fetch('https://script.google.com/macros/s/AKfycby5mwKPlMHGtZ1I7YmqXKA_eZA-rrNhg3X68o_OjSLwX-Ellkp0wS-ZaJ1E429E3dW_/exec?qrcode=' + encodeURIComponent(qrCode), {
+      fetch('https://script.google.com/macros/s/AKfycbwrEoWHIOV8PE7b0T90oyHgaVre_vn_rvTeKOYC_qYYxRczaAYDeBGHJEQLLqRVFjgq/exec?qrcode=' + encodeURIComponent(qrCode), {
         method: "GET",
       })
       .then(response => response.json())
